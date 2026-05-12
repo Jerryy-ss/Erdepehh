@@ -1,0 +1,35 @@
+name: Windows RDP Tailscale
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 9999
+
+    steps:
+    - name: Add RDP User
+      run: |
+        net user admin "Password123!" /add
+        net localgroup administrators admin /add
+        Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Install Tailscale
+      run: |
+        Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale-setup.exe"
+        Start-Process -FilePath ".\tailscale-setup.exe" -Args "/install /quiet" -Wait
+
+    - name: Connect Tailscale
+      env:
+        TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+      run: |
+        & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=$env:TAILSCALE_AUTHKEY --hostname=github-rdp
+
+    - name: Show Tailscale IP
+      run: |
+        & "C:\Program Files\Tailscale\tailscale.exe" ip
+
+    - name: Keep Alive
+      run: |
+        Start-Sleep -Seconds 21600
