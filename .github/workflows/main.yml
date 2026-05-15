@@ -1,6 +1,6 @@
 name: Windows RDP Tailscale 
 
-on: [push]
+on: [push]  
 
 jobs:
   build:
